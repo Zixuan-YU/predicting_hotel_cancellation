@@ -92,6 +92,44 @@ room.summary <- hotel %>%
   arrange(-room_count)
 print(room.summary)
 
+#PCA 
+pca_cols <- 
+  c(
+    "no_of_adults",
+    "no_of_children",
+    "no_of_weekend_nights",
+    "no_of_week_nights",
+    "required_car_parking_space",
+    "arrival_year",
+    "arrival_month",
+    "arrival_date",
+    "repeated_guest",
+    "no_of_previous_cancellations",
+    "no_of_previous_bookings_not_canceled",
+    "avg_price_per_room",
+    "no_of_special_requests"
+  )
+data.pca <- hotel[, pca_cols]
+#Correlation plot
+library(corrplot)
+install.packages("clusterSim")
+library(clusterSim)
+library(FactoMineR)
+corr.df<-cor(data.pca, method="pearson") 
+corrplot(corr.df, order ="alphabet", tl.cex=0.6)
+#Scale the data
+data.pca <- data.Normalization(data.pca, type="n1", normalization="column")
+data.pca <- data.pca[complete.cases(data.pca), ]
+#PCA explained variance
+sample.pca <- prcomp(data.pca)
+fviz_screeplot(sample.pca)
+fviz_contrib(sample.pca, choice = "var")
+summary(sample.pca)
+
+fviz_pca_biplot(sample.pca, col.var = "contrib",
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE)
+
 
 
 #Building models
@@ -218,18 +256,6 @@ plot(roc6, col = 'purple', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 
 plot(roc7, col = 'brown', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.50)
 legend(0.5, 0.4, legend=c("LDA", "Classification Tree", "KNN", "Neural Network", "Random Forest", "Logistic Regression", "Gradient Boosting"),
        col=c("black", "red", "blue", "green", "pink", "purple","brown"), lty=2:3, cex=0.6, box.lty = 1)
-
-
-#Neural Network case study
-model = neuralnet(
-  booking_status~no_of_adults+no_of_children+no_of_weekend_nights+no_of_week_nights+required_car_parking_space+
-    lead_time+repeated_guest+no_of_previous_cancellations+no_of_previous_bookings_not_canceled+avg_price_per_room+
-    no_of_special_requests,
-  data=train,
-  hidden=c(4,2),
-  linear.output = FALSE
-)
-plot(model)
 
 
 
