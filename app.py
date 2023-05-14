@@ -8,7 +8,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 
 # Load the data
-url = 'https://raw.githubusercontent.com/Zixuan-YU/predicting_hotel_cancellation/main/hotel_bookings.csv?token=GHSAT0AAAAAACAVZNMHZCW46ERZ6NMO6OWUZDAGUCA'
+url = 'https://raw.githubusercontent.com/Zixuan-YU/predicting_hotel_cancellation/main/hotel_bookings.csv?token=GHSAT0AAAAAACAVZNMGEDJVXXD43VVP2OJKZDA6UFA'
 df = pd.read_csv(url)
 
 # Calculate the correlation and round it
@@ -69,6 +69,28 @@ dropdown_boxplot = dcc.Dropdown(
 # Create a container for the boxplot
 boxplot_container = dcc.Graph(id='boxplot')
 
+# Create a dropdown for the bivariate categorical variables selection
+bivariate_vars = ['no_of_adults', 'no_of_children', 'no_of_weekend_nights', 'market_segment_type', 'type_of_meal_plan',
+                'required_car_parking_space', 'room_type_reserved', 'arrival_year', 'repeated_guest', 'no_of_special_requests']
+
+dropdowns_bivariate = dcc.Dropdown(
+    id='dropdown-bivariate',
+    options=[{'label': var, 'value': var} for var in bivariate_vars],
+    value=bivariate_vars[0]
+) 
+
+containers_bivariate = dcc.Graph(id='countplot-bivariate')
+
+# Create a dropdown for the bivariate continuous variables selection
+continuous_bivariate_vars = ['lead_time', 'arrival_year', 'arrival_month', 'arrival_date', 'avg_price_per_room']
+dropdowns_continuous_bivariate = dcc.Dropdown(
+    id='dropdown-continuous-bivariate',
+    options=[{'label': var, 'value': var} for var in continuous_bivariate_vars],
+    value=continuous_bivariate_vars[0]
+) 
+
+containers_continuous_bivariate = dcc.Graph(id='kdeplot-bivariate')
+
 # Create a dropdown for the boxplots
 boxplot_den_vars = ['no_of_adults', 'no_of_children', 'no_of_weekend_nights', 'market_segment_type', 'type_of_meal_plan',
                 'room_type_reserved', 'no_of_special_requests', 'arrival_month', 'arrival_date',
@@ -114,6 +136,12 @@ app.layout = html.Div([
     html.H2("Boxplots of Variables"),
     dropdown_boxplot,
     boxplot_container,
+    html.H2("Categorical Bivariate Analysis"),
+    dropdowns_bivariate,
+    containers_bivariate,
+    html.H2("Continuous Bivariate Analysis"),
+    dropdowns_continuous_bivariate,
+    containers_continuous_bivariate,
     html.H2("Boxplot Density Analysis"),
     dropdown_den_boxplot,
     boxplot_den_container,
@@ -157,6 +185,23 @@ def update_boxplot(selected_var):
     fig.add_trace(go.Box(y=df[selected_var], name=selected_var))
     return fig
 
+@app.callback(
+        Output('countplot-bivariate', 'figure'),
+        Input('dropdown-bivariate', 'value')
+)
+def update_bivariate_countplot(selected_var):
+        fig = px.histogram(df, x='booking_status', color=selected_var, nbins=50)
+        return fig
+
+@app.callback(
+        Output('kdeplot-bivariate', 'figure'),
+        Input('dropdown-continuous-bivariate', 'value')
+)
+def update_continuous_bivariate_kdeplot(selected_var):
+        fig = px.histogram(df, x=selected_var, color="booking_status", nbins=50, histnorm='probability density', barmode='overlay')
+        fig.update_traces(opacity=0.75)
+        return fig
+    
 # Define a callback to update the boxplots based on the dropdown selection
 @app.callback(
     Output('boxplot-density', 'figure'),
