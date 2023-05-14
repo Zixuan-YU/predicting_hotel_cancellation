@@ -1,0 +1,335 @@
+---
+title: "ds_project"
+output: html_document
+date: "2023-05-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Read in the libraries
+library(dplyr)
+library(e1071)
+library(ggplot2)
+library(pROC)
+library(corrplot)
+library(clusterSim)
+library(FactoMineR)
+library(caret)
+library("factoextra")
+```
+
+```{r}
+#Read in the dataset
+df<-read.csv("hotel_bookings.csv",header = TRUE)
+# Detect NAs in the dataset and remove them
+nas <- is.na(df)
+# Print the locations of NAs
+print(nas)
+```
+
+```{r}
+#Chekc the dimensions
+dim(df)
+colSums(is.na(df))
+data<-na.omit(df)
+#remove the ID column
+data<-data[,-1]
+#Check the structures of the data
+str(data)
+#Converting data types
+data$type_of_meal_plan<-as.factor(data$type_of_meal_plan)
+data$room_type_reserved<-as.factor(data$room_type_reserved)
+data$market_segment_type<-as.factor(data$market_segment_type)
+data$booking_status<-as.factor(data$booking_status)
+attach(data)
+```
+
+```{r}
+#create dummy variables 
+dummies <- dummyVars(~ ., data = data[,-18], fullRank = TRUE)
+dummy.vars <- predict(dummies, newdata = data)
+#add dummy variables to data 
+hotel <- cbind(booking_status = data$booking_status, dummy.vars)
+hotel <- as.data.frame(data)
+#coerce booking_status to factor
+hotel$booking_status <- as.factor(hotel$booking_status)
+```
+
+```{r}
+#Exploratory analysis
+# plot the pie of hotels
+value <- hotel %>% 
+  summarise(sum(booking_status=="Not_Canceled")/length(booking_status),sum(booking_status=="Canceled")/length(booking_status))
+
+#Pie chart of cancel status
+ddf <- data.frame(value= c(0.6725977,0.3274023), group = c("Not_Canceled", "Canceled"))
+ddf %>% 
+  ggplot(aes(x="", y=value, fill=group)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  geom_text(aes(label = paste0(value, "%")), position = position_stack(vjust = 0.5)) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Figure-1: Pie Chart of the cancel status")
+
+```
+
+```{r}
+# boxplot of the lead time
+hotel %>% 
+  ggplot(aes(as.factor(arrival_month),lead_time))+
+  geom_boxplot(fill="steelblue",color="black")+
+  ggtitle("Figure-2.1: arrival month vs lead time") +
+  xlab("Arrival months")
+```
+
+```{r}
+#Cancellation vs lead time
+hotel %>% 
+  ggplot(aes(lead_time, booking_status))+
+  geom_point(fill="steelblue",color="black")+
+  ggtitle("Figure-3: cancellation vs lead time")
+```
+
+```{r}
+#booking of the month
+year <- as.factor(hotel$arrival_year)
+hotel %>% 
+  ggplot(aes(as.factor(arrival_month), fill = year)) +
+  geom_bar() + 
+  ggtitle("Figure-4: booking of the month")
+```
+
+```{r}
+# create a dataset that customer has checked in but already departed
+hotel_sub <- hotel %>% 
+  filter(booking_status=="Canceled")
+str(hotel)
+hotel %>% 
+  ggplot(aes(x = avg_price_per_room, fill = booking_status, color = booking_status)) + 
+  geom_histogram(aes(y = ..density..), position = "dodge", binwidth = 50) +
+  geom_density(alpha = 0.2) + 
+  coord_cartesian(xlim = c(0,600))+
+  ggtitle("Figure-5: Averaged cost per room vs booking status")
+```
+
+```{r}
+#Booking status vs # of bookings
+ggplot(data = hotel,aes(as.factor(arrival_year),fill = (booking_status))) +
+  geom_bar(position = 'dodge') +
+  scale_y_continuous(name = "# of Bookings",labels = scales::comma) +
+  xlab("Years") +
+  ggtitle("Figure-6: Booking Status vs # of bookings across years") +
+  labs(fill = 'Booking Status')
+```
+
+```{r}
+#Room type vs canceled reservations
+room.summary <- hotel %>%
+  filter(booking_status == "Canceled") %>% 
+  group_by(room_type_reserved) %>%
+  summarize(room_count = n()) %>% 
+  arrange(-room_count)
+print(room.summary)
+```
+
+```{r}
+#PCA 
+pca_cols <- 
+  c(
+    "no_of_adults",
+    "no_of_children",
+    "no_of_weekend_nights",
+    "no_of_week_nights",
+    "required_car_parking_space",
+    "arrival_year",
+    "arrival_month",
+    "arrival_date",
+    "repeated_guest",
+    "no_of_previous_cancellations",
+    "no_of_previous_bookings_not_canceled",
+    "avg_price_per_room",
+    "no_of_special_requests"
+  )
+data.pca <- hotel[, pca_cols]
+```
+
+```{r}
+#Correlation plot
+corr.df<-cor(data.pca, method="pearson") 
+corrplot(corr.df, order ="alphabet", tl.cex=0.6)
+```
+
+```{r}
+#Scale the data
+data.pca <- data.Normalization(data.pca, type="n1", normalization="column")
+data.pca <- data.pca[complete.cases(data.pca), ]
+#PCA explained variance
+sample.pca <- prcomp(data.pca)
+fviz_screeplot(sample.pca)
+fviz_contrib(sample.pca, choice = "var")
+summary(sample.pca)
+
+fviz_pca_biplot(sample.pca, col.var = "contrib",
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE)
+```
+
+
+#######################################
+#Model building 
+
+
+```{r}
+#partition data in 70/30 split
+set.seed(123)
+trainRowNumbers <- createDataPartition(hotel$booking_status, p = 0.7, list = FALSE)
+#establish training data
+train <- hotel[trainRowNumbers,]
+#establish test data
+test <- hotel[-trainRowNumbers,]
+# Run algorithms using 10-fold cross validation
+control <- trainControl(method="cv", number=10)
+metric <- "Accuracy"
+```
+
+
+```{r}
+#Fit models 
+
+#Linear discrimination analysis
+set.seed(123)
+fit.lda <- train(booking_status~., data=train, method="lda", metric=metric, trControl=control)
+#Non-Linear
+# Classification tree
+set.seed(123)
+fit.cart <- train(booking_status~., data=train, method="rpart", metric=metric, trControl=control)
+# kNN
+set.seed(123)
+fit.knn <- train(booking_status~., data=train, method="knn", metric=metric, trControl=control)
+# c) advanced algorithms
+# SVM
+set.seed(123)
+fit.svm <- train(booking_status~., data=train, method="svmRadial", metric=metric, trControl=control)
+# Random Forest
+set.seed(123)
+fit.rf <- train(booking_status~., data=train, method="rf", metric=metric, trControl=control)
+#Logistic regression
+set.seed(123)
+fit.logit <- train(booking_status~., data=train, method = "glm", family = "binomial", metric=metric, trControl=control)
+#Stochastic Gradient Boosting
+set.seed(123)
+fit.gbm <- train(booking_status~., data=train, method="gbm", metric=metric, trControl=control)
+#Neural Network
+set.seed(123)
+fit.nn <- train(booking_status~., data=train, method="nnet", metric=metric, trControl=control,
+                preProcess = "range", 
+                tuneLength = 2,
+                trace = FALSE,
+                maxit = 100)
+```
+
+
+```{r}
+#Show results
+results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf, glm=fit.logit,gbm=fit.gbm,nnet=fit.nn))
+summary(results)
+
+# compare accuracy of models
+dotplot(results)
+```
+
+```{r}
+# Get predictions by evaluating them on test set
+predictionlda <- predict(fit.lda, test)
+predictioncart <- predict(fit.cart, test)
+predictionknn <- predict(fit.knn, test)
+predictionsvm <- predict(fit.svm, test)
+predictionrf <- predict(fit.rf, test)
+predictionlogit <- predict(fit.logit,test)
+predictiongbm <- predict(fit.gbm, test)
+predictionnn<-predict(fit.nn,test)
+
+#Creating confusion matrices
+cfmlda<-confusionMatrix(predictionlda, test$booking_status)
+cfmcart<-confusionMatrix(predictioncart, test$booking_status)
+cfmknn<-confusionMatrix(predictionknn, test$booking_status)
+cfmsvm<-confusionMatrix(predictionsvm, test$booking_status)
+cfmrf<-confusionMatrix(predictionrf, test$booking_status)
+cfmlogit<-confusionMatrix(predictionlogit, test$booking_status)
+cfmgbm<-confusionMatrix(predictiongbm, test$booking_status)
+cfmnn<-confusionMatrix(predictionnn, test$booking_status)
+cfmlda
+cfmcart
+cfmknn
+cfmsvm
+cfmrf
+cfmlogit
+cfmgbm
+cfmnn
+```
+
+```{r}
+#store accuracy in variables
+acclda <- cfmlda$overall[1]
+acccart <- cfmcart$overall[1]
+accknn <- cfmknn$overall[1]
+accsvm <- cfmsvm$overall[1]
+accrf <- cfmrf$overall[1]
+acclogit <- cfmlogit$overall[1]
+accgbm <- cfmgbm$overall[1]
+accnn<-cfmnn$overall[1]
+acc <- t(data.frame(acclda,acccart,accknn,accsvm,accrf,acclogit,accgbm,accnn))
+rownames(acc)<-c("LDA", "Classificaiton Tree","KNN", "svm_radial","Random Forest","Logistic Regression","Gradient Boosting","Neural Network")
+acc
+```
+
+```{r}
+# Predict on the test set
+pred1 <- predict(fit.lda, test,type = "prob")
+pred2 <- predict(fit.cart, test,type = "prob")
+pred3 <- predict(fit.knn, test,type = "prob")
+pred4 <- predict(fit.svm, test)
+pred5 <- predict(fit.rf, test,type = "prob")
+pred6 <- predict(fit.logit,test,type = "prob")
+pred7 <- predict(fit.gbm, test,type = "prob")
+pred8 <- predict(fit.nn, test, type ="prob")
+
+#S tore the predictions into ROC
+pred1 <- as.numeric(pred1$Not_Canceled)
+roc1 <- roc(as.factor(test$booking_status), pred1)
+pred2 <- as.numeric(pred2$Not_Canceled)
+roc2 <- roc(as.factor(test$booking_status), pred2)
+pred3 <- as.numeric(pred3$Not_Canceled)
+roc3 <- roc(as.factor(test$booking_status), pred3)
+pred5 <- as.numeric(pred5$Not_Canceled)
+roc5 <- roc(as.factor(test$booking_status), pred5)
+pred6 <- as.numeric(pred6$Not_Canceled)
+roc6 <- roc(as.factor(test$booking_status), pred6)
+pred7 <- as.numeric(pred7$Not_Canceled)
+roc7 <- roc(as.factor(test$booking_status), pred7)
+# Convert predictionnn to numeric
+pred8 <- as.numeric(pred8$Not_Canceled)
+roc8 <- roc(as.factor(test$booking_status), pred8)
+
+par(pty = 's')
+#Plot the comparisions
+plot(roc1, col = 'black', lty = 2, main = "ROC Comparison Plots", legacy.axes = TRUE,
+     percent = TRUE, xlab = "False Positive Percentage",
+     ylab = "True Positive Percentage", print.auc = TRUE,print.auc.y = 0.80)
+plot(roc2, col = 'red', lty = 3, add = TRUE, print.auc = TRUE, print.auc.y = 0.75)
+plot(roc3, col = 'blue', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.70)
+plot(roc8, col = 'green', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.65)
+plot(roc5, col = 'pink', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.60)
+plot(roc6, col = 'purple', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.55)
+plot(roc7, col = 'brown', lty = 4, add = TRUE, print.auc = TRUE, print.auc.y = 0.50)
+legend(0.5, 0.4, legend=c("LDA", "Classification Tree", "KNN", "Neural Network", "Random Forest", "Logistic Regression", "Gradient Boosting"),
+       col=c("black", "red", "blue", "green", "pink", "purple","brown"), lty=2:3, cex=0.6, box.lty = 1)
+
+```
+
+
+
+
+
