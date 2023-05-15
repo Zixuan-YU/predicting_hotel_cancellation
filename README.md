@@ -1,6 +1,10 @@
 ### predicting_hotel_cancellation
 Final project for Data Science for Public Health 
 
+**Presentation:**
+Our Presentation can be view [Here](https://docs.google.com/presentation/d/11v_tcLLaK6zHlShcrXSGuLu4rgQ22pDb70bzoLbLxlg/edit?usp=sharing)
+The Google Slide for our project is [Here](https://link-url-here.org](https://www.youtube.com/watch?v=MSqWGSU8UDQ)
+
 ### EDA
 We made a dashboard to present the booking status of hotel in 2017 and 2018 in the US.
 
