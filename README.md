@@ -1,10 +1,6 @@
 ### predicting_hotel_cancellation
 Final project for Data Science for Public Health 
 
-**Presentation:**
-Our Presentation can be view [Here](https://docs.google.com/presentation/d/11v_tcLLaK6zHlShcrXSGuLu4rgQ22pDb70bzoLbLxlg/edit?usp=sharing)  
-The Google Slide for our project is [Here](https://link-url-here.org](https://www.youtube.com/watch?v=MSqWGSU8UDQ)
-
 ### EDA
 We made a dashboard to present the booking status of hotel in 2017 and 2018 in the US.
 
@@ -29,7 +25,12 @@ The models varied in their performance, with the Random Forest model achieving t
 
 **Sensitivity & Specificity**: Specificity scores are much higher than sensitivity scores, emphasizing a need to improve the prediction accuracy for the true canceled cases in future analysis.  
  
-In summary, our data analysis and modeling provide valuable insights for hotel management in understanding the factors contributing to booking cancellations. With these insights, the hotel can devise strategies to reduce cancellations and hence increase revenue. The predictive model can also be used to forecast future cancellations, assisting in effective room inventory management. Continuous updating of the model with new data can further enhance its accuracy and usefulness.  
+In summary, our data analysis and modeling provide valuable insights for hotel management in understanding the factors contributing to booking cancellations. With these insights, the hotel can devise strategies to reduce cancellations and hence increase revenue. The predictive model can also be used to forecast future cancellations, assisting in effective room inventory management. Continuous updating of the model with new data can further enhance its accuracy and usefulness.   
+
+
+**Presentation:**
+Our Presentation can be view [Here](https://docs.google.com/presentation/d/11v_tcLLaK6zHlShcrXSGuLu4rgQ22pDb70bzoLbLxlg/edit?usp=sharing)  
+The Google Slide for our project is [Here](https://www.youtube.com/watch?v=MSqWGSU8UDQ). 
  
 
 
