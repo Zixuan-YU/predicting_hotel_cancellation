@@ -8,7 +8,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 
 # Load the data
-url = 'https://raw.githubusercontent.com/Zixuan-YU/predicting_hotel_cancellation/main/hotel_bookings.csv?token=GHSAT0AAAAAACAVZNMGEDJVXXD43VVP2OJKZDA6UFA'
+url = 'https://raw.githubusercontent.com/Zixuan-YU/predicting_hotel_cancellation/main/hotel_bookings.csv?token=GHSAT0AAAAAACAVZNMHDZXSC2A2UMM4FR4KZDBSCTA'
 df = pd.read_csv(url)
 
 # Calculate the correlation and round it
@@ -119,7 +119,7 @@ scatter_container = dcc.Graph(id='scatter-plot')
 
 # Arrange the components in the app layout
 app.layout = html.Div([
-    html.H1("Data Visualization Dashboard"),
+    html.H1("Hotel cancellation Dashboard"),
     html.H2("NA Distribution"),
     na_table,
     html.H2("Verifying the correlation between our variables"),
@@ -127,7 +127,7 @@ app.layout = html.Div([
     html.H2("Histograms of Categorical Variables"),
     dropdowns[0],
     containers[0],
-    html.H2("Histograms of Bookings by Month"),
+    html.H2("Histograms of Bookings"),
     dropdowns[1],
     containers[1],
     html.H2("Histograms of Continous Variables"),
