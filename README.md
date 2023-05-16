@@ -29,8 +29,8 @@ In summary, our data analysis and modeling provide valuable insights for hotel m
 
 
 **Presentation:**
-Our Presentation can be view [Here](https://docs.google.com/presentation/d/11v_tcLLaK6zHlShcrXSGuLu4rgQ22pDb70bzoLbLxlg/edit?usp=sharing)  
-The Google Slide for our project is [Here](https://www.youtube.com/watch?v=MSqWGSU8UDQ). 
+Our Presentation can be view [Here](https://www.youtube.com/watch?v=MSqWGSU8UDQ).   
+The Google Slide for our project is [Here](https://docs.google.com/presentation/d/11v_tcLLaK6zHlShcrXSGuLu4rgQ22pDb70bzoLbLxlg/edit?usp=sharing)  
  
 
 
